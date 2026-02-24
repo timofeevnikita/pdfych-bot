@@ -17,7 +17,6 @@ START_TEXT = """
 📄 <b>Что умею:</b>
 • Word, Excel, PowerPoint → PDF
 • PDF → Word (.docx)
-• PDF → картинки (постранично, .jpg)
 • Картинки (JPG, PNG, WEBP, HEIC) → PDF
 • Несколько фото → один PDF
 • Склейка нескольких PDF → один файл
