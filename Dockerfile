@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Создаём непривилегированного пользователя
-RUN useradd --create-home --shell /bin/bash glasx
+RUN useradd --create-home --shell /bin/bash pdfych
 
 WORKDIR /app
 
@@ -27,9 +27,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Создаём директории с правильными правами
-RUN mkdir -p tmp data && chown -R glasx:glasx /app
+RUN mkdir -p tmp data && chown -R pdfych:pdfych /app
 
 # Запускаем от непривилегированного пользователя
-USER glasx
+USER pdfych
 
 CMD ["python", "-m", "bot.main"]

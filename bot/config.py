@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: int = 20
     FREE_DAILY_LIMIT: int = 10
     TMP_DIR: str = "./tmp"
-    DB_PATH: str = "./data/glasx.db"
+    DB_PATH: str = "./data/pdfych.db"
     LOG_LEVEL: str = "INFO"
     ALLOWED_EXTENSIONS: str = (
         ".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpg,.jpeg,.png,.webp,.heic"

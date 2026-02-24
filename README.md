@@ -25,8 +25,8 @@
 
 ```bash
 # 1. Клонируй репозиторий
-git clone <repo-url>
-cd glasx-bot
+git clone https://github.com/timofeevnikita/pdfych-bot.git
+cd pdfych-bot
 
 # 2. Создай .env из шаблона
 cp .env.example .env
@@ -71,7 +71,7 @@ python -m bot.main
 | `MAX_FILE_SIZE_MB` | Максимальный размер файла (МБ) | `20` |
 | `FREE_DAILY_LIMIT` | Дневной лимит конвертаций | `10` |
 | `TMP_DIR` | Директория для временных файлов | `./tmp` |
-| `DB_PATH` | Путь к SQLite базе данных | `./data/glasx.db` |
+| `DB_PATH` | Путь к SQLite базе данных | `./data/pdfych.db` |
 | `LOG_LEVEL` | Уровень логирования | `INFO` |
 | `TMP_MAX_AGE_SECONDS` | Время жизни временных файлов (сек) | `300` |
 
@@ -96,6 +96,6 @@ bot/
 - Таймаут LibreOffice 60 сек (защита от зависания)
 - Rate limiting: 1 запрос / 3 сек на пользователя
 - Глобальный лимит: 10 одновременных обработок
-- Docker запускается от непривилегированного пользователя `glasx`
+- Docker запускается от непривилегированного пользователя `pdfych`
 - Параметризованные SQL-запросы (защита от инъекций)
 - Автоочистка tmp каждые 60 сек
