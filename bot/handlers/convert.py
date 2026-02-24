@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from typing import Optional
 
 from aiogram import Bot, F, Router
-from aiogram.types import FSInputFile, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from bot.config import config
 from bot.database.db import check_daily_limit, log_conversion
+from bot.keyboards.inline import get_pdf_format_keyboard
 from bot.services.converter import convert
 from bot.services.file_manager import download_file, safe_remove, safe_remove_list
 from bot.services.image_tools import images_to_pdf
@@ -31,6 +33,10 @@ _PAGE_SEND_DELAY = 0.15  # секунд
 _ALBUM_COLLECT_DELAY = 1.0  # секунд ожидания остальных фото
 _album_buffers: dict[str, list[Message]] = {}
 _album_locks: dict[str, asyncio.Event] = {}
+
+# Хранилище данных о PDF-файлах по короткому ключу
+# (вместо FSM, чтобы не конфликтовать при отправке нескольких PDF одновременно)
+_pdf_file_data: dict[str, dict] = {}
 
 
 @router.message(F.document)
@@ -63,17 +69,29 @@ async def handle_document(message: Message, bot: Bot) -> None:
         )
         return
 
-    # 4. Если PDF — конвертируем в DOCX по умолчанию
-    #    Для конвертации PDF → JPG используется /split
+    # 4. Если PDF — предлагаем выбрать формат через кнопки
     if ext == ".pdf":
-        await _run_conversion(
-            message=message,
-            bot=bot,
-            file_id=doc.file_id,
-            file_name=doc.file_name or "document.pdf",
-            file_size=doc.file_size,
-            source_ext=ext,
-            target_format="docx",
+        display_name = sanitize_display_name(doc.file_name or "document.pdf")
+        size_str = human_readable_size(doc.file_size or 0)
+
+        # Короткий ключ (8 символов) — Telegram ограничивает callback_data до 64 байт
+        key = uuid.uuid4().hex[:8]
+        _pdf_file_data[key] = {
+            "file_id": doc.file_id,
+            "file_name": doc.file_name or "document.pdf",
+            "file_size": doc.file_size,
+            "source_ext": ext,
+        }
+
+        kb = get_pdf_format_keyboard(key)
+        logger.info(
+            "Sending PDF format keyboard: key=%s, rows=%d",
+            key,
+            len(kb.inline_keyboard),
+        )
+        await message.answer(
+            f"📄 {display_name} ({size_str})\n\nКонвертировать в:",
+            reply_markup=kb,
         )
         return
 
@@ -182,6 +200,55 @@ async def _process_album(messages: list[Message], bot: Bot) -> None:
             pass
 
 
+
+
+@router.callback_query(F.data.startswith("convert:cancel:"))
+async def handle_format_cancel(callback: CallbackQuery) -> None:
+    """Отмена выбора формата конвертации PDF."""
+    await callback.answer()
+    key = callback.data.split(":", 2)[2]
+    _pdf_file_data.pop(key, None)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await callback.message.answer("❌ Конвертация отменена.")
+
+
+@router.callback_query(F.data.startswith("convert:"))
+async def handle_format_selection(callback: CallbackQuery, bot: Bot) -> None:
+    """Обработка выбора формата (Word/JPG) для PDF."""
+    await callback.answer()
+
+    parts = callback.data.split(":", 2)  # ["convert", "docx", "<key>"]
+    target_format = parts[1]
+    key = parts[2]
+
+    data = _pdf_file_data.pop(key, None)
+    if not data:
+        await callback.message.answer("❌ Данные о файле устарели. Отправь PDF заново.")
+        return
+
+    file_id: str = data["file_id"]
+    file_name: str = data["file_name"]
+    file_size: Optional[int] = data.get("file_size")
+    source_ext: str = data["source_ext"]
+
+    # Убираем кнопки
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    await _run_conversion(
+        message=callback.message,
+        bot=bot,
+        file_id=file_id,
+        file_name=file_name,
+        file_size=file_size,
+        source_ext=source_ext,
+        target_format=target_format,
+    )
 
 
 async def _run_conversion(

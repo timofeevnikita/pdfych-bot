@@ -48,7 +48,7 @@ async def main() -> None:
     dp = Dispatcher()
 
     # Регистрируем middleware (порядок важен: throttling → logging)
-    dp.message.middleware(ThrottlingMiddleware(user_rate=3.0, global_max_concurrent=10))
+    dp.message.middleware(ThrottlingMiddleware(user_rate=1.0, global_max_concurrent=10))
     dp.message.middleware(UserLoggingMiddleware())
 
     # Подключаем роутеры
