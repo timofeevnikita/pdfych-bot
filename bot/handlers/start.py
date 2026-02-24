@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
 from bot.config import config
+from bot.keyboards.inline import get_start_keyboard
 
 router = Router()
 
@@ -18,13 +20,11 @@ START_TEXT = """
 • PDF → Word (.docx)
 • PDF → картинки (постранично, .jpg)
 • Картинки (JPG, PNG, WEBP, HEIC) → PDF
+• Несколько фото → один PDF
 • Склейка нескольких PDF → один файл
 • Разделение PDF на отдельные страницы
 
-📎 Отправь файл прямо сейчас или выбери команду:
-/merge — склеить несколько PDF
-/split — разделить PDF на страницы
-/help — подробная справка
+📎 Отправь файл прямо сейчас или выбери действие:
 """.strip()
 
 HELP_TEXT = """
@@ -35,6 +35,7 @@ HELP_TEXT = """
 • <code>.xls</code>, <code>.xlsx</code> — Microsoft Excel → PDF
 • <code>.ppt</code>, <code>.pptx</code> — Microsoft PowerPoint → PDF
 • <code>.jpg</code>, <code>.png</code>, <code>.webp</code>, <code>.heic</code> — картинки → PDF
+• Несколько фото одним альбомом → один PDF
 • <code>.pdf</code> → Word (.docx) или картинки (.jpg)
 
 <b>Команды:</b>
@@ -48,12 +49,14 @@ HELP_TEXT = """
 
 <b>Как использовать:</b>
 Просто отправь файл — бот определит формат и предложит варианты конвертации.
+Отправь несколько фото одним альбомом — получишь один PDF.
 """.strip()
 
 
 @router.message(Command("start"))
-async def cmd_start(message: Message) -> None:
-    await message.answer(START_TEXT)
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer(START_TEXT, reply_markup=get_start_keyboard())
 
 
 @router.message(Command("help"))
@@ -63,3 +66,31 @@ async def cmd_help(message: Message) -> None:
         daily=config.FREE_DAILY_LIMIT,
     )
     await message.answer(text)
+
+
+@router.callback_query(F.data == "menu:merge")
+async def menu_merge(callback: CallbackQuery, state: FSMContext) -> None:
+    """Кнопка «Склеить PDF» из главного меню."""
+    await callback.answer()
+    # Импортируем здесь, чтобы избежать циклического импорта
+    from bot.handlers.merge_pdf import cmd_merge
+    await cmd_merge(callback.message, state)
+
+
+@router.callback_query(F.data == "menu:split")
+async def menu_split(callback: CallbackQuery, state: FSMContext) -> None:
+    """Кнопка «Разделить PDF» из главного меню."""
+    await callback.answer()
+    from bot.handlers.split_pdf import cmd_split
+    await cmd_split(callback.message, state)
+
+
+@router.callback_query(F.data == "menu:help")
+async def menu_help(callback: CallbackQuery) -> None:
+    """Кнопка «Справка» из главного меню."""
+    await callback.answer()
+    text = HELP_TEXT.format(
+        max_mb=config.MAX_FILE_SIZE_MB,
+        daily=config.FREE_DAILY_LIMIT,
+    )
+    await callback.message.answer(text)

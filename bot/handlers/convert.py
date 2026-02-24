@@ -194,6 +194,20 @@ async def _process_album(messages: list[Message], bot: Bot) -> None:
             pass
 
 
+@router.callback_query(F.data == "convert:cancel", ConvertStates.waiting_format)
+async def handle_format_cancel(
+    callback: CallbackQuery, state: FSMContext
+) -> None:
+    """Отмена выбора формата конвертации PDF."""
+    await callback.answer()
+    await state.clear()
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await callback.message.answer("❌ Конвертация отменена.")
+
+
 @router.callback_query(F.data.startswith("convert:"), ConvertStates.waiting_format)
 async def handle_format_selection(
     callback: CallbackQuery, bot: Bot, state: FSMContext
