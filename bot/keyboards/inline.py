@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def get_start_keyboard() -> InlineKeyboardMarkup:
-    """Главное меню после /start."""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📎 Склеить PDF", callback_data="menu:merge")
-    builder.button(text="✂️ Разделить PDF", callback_data="menu:split")
-    builder.button(text="📖 Справка", callback_data="menu:help")
-    builder.adjust(2, 1)
-    return builder.as_markup()
+def get_main_keyboard() -> ReplyKeyboardMarkup:
+    """Постоянная клавиатура внизу чата."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📎 Склеить PDF"), KeyboardButton(text="✂️ Разделить PDF")],
+        ],
+        resize_keyboard=True,
+    )
 
 
 def get_pdf_format_keyboard() -> InlineKeyboardMarkup:

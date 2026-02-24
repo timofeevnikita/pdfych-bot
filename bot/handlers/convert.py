@@ -170,7 +170,7 @@ async def _process_album(messages: list[Message], bot: Bot) -> None:
         result_file = FSInputFile(output_path, filename="photos.pdf")
         await first_msg.answer_document(
             result_file,
-            caption=f"✅ Готово — {count} фото в PDF — ПДФыч",
+            caption=f"✅ Готово — {count} фото в PDF!\nРад был помочь, Ваш PDFыч",
         )
 
         user_id = first_msg.from_user.id if first_msg.from_user else 0
@@ -284,7 +284,7 @@ async def _run_conversion(
         if len(output_paths) == 1:
             out_name = make_output_name(file_name, target_format)
             result_file = FSInputFile(output_paths[0], filename=out_name)
-            await message.answer_document(result_file, caption="✅ Готово — ПДФыч")
+            await message.answer_document(result_file, caption="✅ Готово!\nРад был помочь, Ваш PDFыч")
         else:
             # Несколько файлов (PDF → JPG, постранично)
             total = len(output_paths)
@@ -292,7 +292,7 @@ async def _run_conversion(
                 page_num = i + 1
                 fname = f"page_{page_num:03d}.jpg"
                 result_file = FSInputFile(path, filename=fname)
-                caption = f"✅ Готово — ПДФыч" if page_num == total else None
+                caption = "✅ Готово!\nРад был помочь, Ваш PDFыч" if page_num == total else None
                 await message.answer_document(result_file, caption=caption)
                 if i < total - 1:
                     await asyncio.sleep(_PAGE_SEND_DELAY)
