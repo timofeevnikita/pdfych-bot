@@ -85,8 +85,8 @@ async def handle_document(message: Message, bot: Bot) -> None:
             "source_ext": ext,
         }
 
-        await message.reply(
-            f"Файл: <b>{display_name}</b> ({size_str})\n\nКонвертировать в:",
+        await message.answer(
+            f"📄 <b>{display_name}</b> ({size_str})\n\nКонвертировать в:",
             reply_markup=get_pdf_format_keyboard(key),
         )
         return
