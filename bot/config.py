@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     BOT_TOKEN: str
     MAX_FILE_SIZE_MB: int = 20
-    FREE_DAILY_LIMIT: int = 10
+    FREE_DAILY_LIMIT: int = 0  # 0 = без лимита
     TMP_DIR: str = "./tmp"
     DB_PATH: str = "./data/pdfych.db"
     LOG_LEVEL: str = "INFO"

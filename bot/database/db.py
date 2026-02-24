@@ -75,7 +75,9 @@ async def log_conversion(
 
 
 async def check_daily_limit(user_id: int, limit: int) -> bool:
-    """Возвращает True если пользователь НЕ превысил дневной лимит."""
+    """Возвращает True если пользователь НЕ превысил дневной лимит. 0 = без лимита."""
+    if limit <= 0:
+        return True
     db = await _get_db()
     async with db.execute(
         """
