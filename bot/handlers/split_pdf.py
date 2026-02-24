@@ -135,7 +135,7 @@ async def handle_split_confirm(
             page_num = i + 1
             fname = f"page_{page_num:03d}.pdf"
             result_file = FSInputFile(path, filename=fname)
-            caption = f"✅ Готово — {total} страниц!\nРад был помочь, Ваш PDFыч" if page_num == total else None
+            caption = f"✅ Готово — {total} страниц!\nРад был помочь, Ваш @PDFych_bot" if page_num == total else None
             await callback.message.answer_document(result_file, caption=caption)
             if i < total - 1:
                 await asyncio.sleep(_PAGE_SEND_DELAY)

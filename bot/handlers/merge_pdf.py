@@ -137,7 +137,7 @@ async def handle_merge_done(
         result_file = FSInputFile(output_path, filename="merged.pdf")
         await callback.message.answer_document(
             result_file,
-            caption=f"✅ Готово — склеено {len(pdf_paths)} файлов!\nРад был помочь, Ваш PDFыч",
+            caption=f"✅ Готово — склеено {len(pdf_paths)} файлов!\nРад был помочь, Ваш @PDFych_bot",
         )
     except Exception:
         logger.exception(
