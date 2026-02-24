@@ -1,25 +1,15 @@
 from __future__ import annotations
 
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def get_main_keyboard() -> ReplyKeyboardMarkup:
-    """Постоянная клавиатура внизу чата."""
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📎 Склеить PDF"), KeyboardButton(text="✂️ Разделить PDF")],
-        ],
-        resize_keyboard=True,
-    )
-
-
-def get_pdf_format_keyboard() -> InlineKeyboardMarkup:
+def get_pdf_format_keyboard(file_id: str) -> InlineKeyboardMarkup:
     """Клавиатура для выбора формата конвертации PDF-файла."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="📝 Word (.docx)", callback_data="convert:docx")
-    builder.button(text="🖼 Картинки (.jpg)", callback_data="convert:jpg")
-    builder.button(text="❌ Отмена", callback_data="convert:cancel")
+    builder.button(text="📝 Word (.docx)", callback_data=f"convert:docx:{file_id}")
+    builder.button(text="🖼 Картинки (.jpg)", callback_data=f"convert:jpg:{file_id}")
+    builder.button(text="❌ Отмена", callback_data=f"convert:cancel:{file_id}")
     builder.adjust(2, 1)
     return builder.as_markup()
 

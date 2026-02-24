@@ -42,6 +42,12 @@ async def convert_with_libreoffice(
     profile_dir = os.path.join("/tmp", f"lo_profile_{uuid.uuid4().hex}")
     profile_uri = "file://" + quote(str(Path(profile_dir).resolve()))
 
+    # Для PDF → DOCX нужен специальный входной фильтр
+    source_ext = os.path.splitext(input_path)[1].lower()
+    infilter_args: list[str] = []
+    if source_ext == ".pdf" and target_format == "docx":
+        infilter_args = ["--infilter=writer_pdf_import"]
+
     async with _libreoffice_semaphore:
         try:
             process = await asyncio.create_subprocess_exec(
@@ -50,6 +56,7 @@ async def convert_with_libreoffice(
                 "--norestore",
                 "--nologo",
                 f"-env:UserInstallation={profile_uri}",
+                *infilter_args,
                 "--convert-to",
                 target_format,
                 "--outdir",

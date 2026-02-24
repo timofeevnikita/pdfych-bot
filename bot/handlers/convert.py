@@ -5,8 +5,6 @@ import logging
 from typing import Optional
 
 from aiogram import Bot, F, Router
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from bot.config import config
@@ -36,12 +34,13 @@ _album_buffers: dict[str, list[Message]] = {}
 _album_locks: dict[str, asyncio.Event] = {}
 
 
-class ConvertStates(StatesGroup):
-    waiting_format = State()  # ждём выбор формата для PDF-файла
+# Хранилище данных о PDF-файлах (вместо FSM, чтобы не конфликтовать
+# при отправке нескольких PDF одновременно)
+_pdf_file_data: dict[str, dict] = {}
 
 
 @router.message(F.document)
-async def handle_document(message: Message, bot: Bot, state: FSMContext) -> None:
+async def handle_document(message: Message, bot: Bot) -> None:
     doc = message.document
     if doc is None:
         return
@@ -75,17 +74,17 @@ async def handle_document(message: Message, bot: Bot, state: FSMContext) -> None
         display_name = sanitize_display_name(doc.file_name or "document.pdf")
         size_str = human_readable_size(doc.file_size or 0)
 
-        await state.update_data(
-            file_id=doc.file_id,
-            file_name=doc.file_name or "document.pdf",
-            file_size=doc.file_size,
-            source_ext=ext,
-        )
-        await state.set_state(ConvertStates.waiting_format)
+        # Сохраняем данные по file_id (не FSM — не конфликтует при нескольких PDF)
+        _pdf_file_data[doc.file_id] = {
+            "file_id": doc.file_id,
+            "file_name": doc.file_name or "document.pdf",
+            "file_size": doc.file_size,
+            "source_ext": ext,
+        }
 
         await message.reply(
             f"Файл: <b>{display_name}</b> ({size_str})\n\nКонвертировать в:",
-            reply_markup=get_pdf_format_keyboard(),
+            reply_markup=get_pdf_format_keyboard(doc.file_id),
         )
         return
 
@@ -194,13 +193,12 @@ async def _process_album(messages: list[Message], bot: Bot) -> None:
             pass
 
 
-@router.callback_query(F.data == "convert:cancel", ConvertStates.waiting_format)
-async def handle_format_cancel(
-    callback: CallbackQuery, state: FSMContext
-) -> None:
+@router.callback_query(F.data.startswith("convert:cancel:"))
+async def handle_format_cancel(callback: CallbackQuery) -> None:
     """Отмена выбора формата конвертации PDF."""
     await callback.answer()
-    await state.clear()
+    file_id = callback.data.split(":", 2)[2]
+    _pdf_file_data.pop(file_id, None)
     try:
         await callback.message.edit_reply_markup(reply_markup=None)
     except Exception:
@@ -208,17 +206,19 @@ async def handle_format_cancel(
     await callback.message.answer("❌ Конвертация отменена.")
 
 
-@router.callback_query(F.data.startswith("convert:"), ConvertStates.waiting_format)
-async def handle_format_selection(
-    callback: CallbackQuery, bot: Bot, state: FSMContext
-) -> None:
+@router.callback_query(F.data.startswith("convert:"))
+async def handle_format_selection(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer()
 
-    target_format = callback.data.split(":")[1]  # "docx" или "jpg"
-    data = await state.get_data()
-    await state.clear()
+    parts = callback.data.split(":", 2)  # ["convert", "docx", "<file_id>"]
+    target_format = parts[1]
+    file_id = parts[2]
 
-    file_id: str = data["file_id"]
+    data = _pdf_file_data.pop(file_id, None)
+    if not data:
+        await callback.message.answer("❌ Данные о файле устарели. Отправь PDF заново.")
+        return
+
     file_name: str = data["file_name"]
     file_size: Optional[int] = data.get("file_size")
     source_ext: str = data["source_ext"]

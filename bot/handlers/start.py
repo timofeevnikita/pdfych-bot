@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from aiogram import F, Router
+from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 
 from bot.config import config
-from bot.keyboards.inline import get_main_keyboard
 
 router = Router()
 
@@ -24,7 +23,10 @@ START_TEXT = """
 • Склейка нескольких PDF → один файл
 • Разделение PDF на отдельные страницы
 
-📎 Отправь файл прямо сейчас или выбери действие внизу 👇
+📎 Отправь файл прямо сейчас или выбери команду:
+/merge — склеить несколько PDF
+/split — разделить PDF на страницы
+/help — подробная справка
 """.strip()
 
 HELP_TEXT = """
@@ -51,7 +53,7 @@ HELP_TEXT = """
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(START_TEXT, reply_markup=get_main_keyboard())
+    await message.answer(START_TEXT, reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(Command("help"))
@@ -61,17 +63,3 @@ async def cmd_help(message: Message) -> None:
         daily=config.FREE_DAILY_LIMIT,
     )
     await message.answer(text)
-
-
-@router.message(F.text == "📎 Склеить PDF")
-async def btn_merge(message: Message, state: FSMContext) -> None:
-    """Кнопка «Склеить PDF» из постоянной клавиатуры."""
-    from bot.handlers.merge_pdf import cmd_merge
-    await cmd_merge(message, state)
-
-
-@router.message(F.text == "✂️ Разделить PDF")
-async def btn_split(message: Message, state: FSMContext) -> None:
-    """Кнопка «Разделить PDF» из постоянной клавиатуры."""
-    from bot.handlers.split_pdf import cmd_split
-    await cmd_split(message, state)
