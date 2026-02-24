@@ -85,9 +85,11 @@ async def handle_document(message: Message, bot: Bot) -> None:
             "source_ext": ext,
         }
 
+        kb = get_pdf_format_keyboard(key)
+        logger.info("Sending PDF format keyboard: key=%s, buttons=%d", key, sum(len(row) for row in kb.inline_keyboard))
         await message.answer(
             f"📄 <b>{display_name}</b> ({size_str})\n\nКонвертировать в:",
-            reply_markup=get_pdf_format_keyboard(key),
+            reply_markup=kb,
         )
         return
 
