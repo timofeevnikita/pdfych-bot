@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from typing import Optional
 
 from aiogram import Bot, F, Router
@@ -74,8 +75,10 @@ async def handle_document(message: Message, bot: Bot) -> None:
         display_name = sanitize_display_name(doc.file_name or "document.pdf")
         size_str = human_readable_size(doc.file_size or 0)
 
-        # Сохраняем данные по file_id (не FSM — не конфликтует при нескольких PDF)
-        _pdf_file_data[doc.file_id] = {
+        # Короткий ключ (8 символов) вместо длинного file_id
+        # Telegram ограничивает callback_data до 64 байт
+        key = uuid.uuid4().hex[:8]
+        _pdf_file_data[key] = {
             "file_id": doc.file_id,
             "file_name": doc.file_name or "document.pdf",
             "file_size": doc.file_size,
@@ -84,7 +87,7 @@ async def handle_document(message: Message, bot: Bot) -> None:
 
         await message.reply(
             f"Файл: <b>{display_name}</b> ({size_str})\n\nКонвертировать в:",
-            reply_markup=get_pdf_format_keyboard(doc.file_id),
+            reply_markup=get_pdf_format_keyboard(key),
         )
         return
 
@@ -197,8 +200,8 @@ async def _process_album(messages: list[Message], bot: Bot) -> None:
 async def handle_format_cancel(callback: CallbackQuery) -> None:
     """Отмена выбора формата конвертации PDF."""
     await callback.answer()
-    file_id = callback.data.split(":", 2)[2]
-    _pdf_file_data.pop(file_id, None)
+    key = callback.data.split(":", 2)[2]
+    _pdf_file_data.pop(key, None)
     try:
         await callback.message.edit_reply_markup(reply_markup=None)
     except Exception:
@@ -210,15 +213,16 @@ async def handle_format_cancel(callback: CallbackQuery) -> None:
 async def handle_format_selection(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer()
 
-    parts = callback.data.split(":", 2)  # ["convert", "docx", "<file_id>"]
+    parts = callback.data.split(":", 2)  # ["convert", "docx", "<key>"]
     target_format = parts[1]
-    file_id = parts[2]
+    key = parts[2]
 
-    data = _pdf_file_data.pop(file_id, None)
+    data = _pdf_file_data.pop(key, None)
     if not data:
         await callback.message.answer("❌ Данные о файле устарели. Отправь PDF заново.")
         return
 
+    file_id: str = data["file_id"]
     file_name: str = data["file_name"]
     file_size: Optional[int] = data.get("file_size")
     source_ext: str = data["source_ext"]
